@@ -5,15 +5,32 @@ interface Props {
   onComplete: (names: string[]) => void;
 }
 
-const RANDOM_NAMES = [
-  '민수', '지현', '서준', '하은', '도윤', '수빈', '예준', '지우',
-  '시우', '서연', '하준', '지민', '유준', '채원', '건우', '소율',
-  '현우', '다은', '준서', '유나', '태민', '은지', '성훈', '미래',
+const ADJECTIVES = [
+  '행복한', '용감한', '배고픈', '졸린', '신난',
+  '느긋한', '당당한', '수줍은', '엉뚱한', '씩씩한',
+  '귀여운', '멋진', '똑똑한', '재빠른', '든든한',
+  '활발한', '다정한', '호기심많은', '여유로운', '산뜻한',
 ];
 
+const ANIMALS = [
+  '수달', '펭귄', '고양이', '강아지', '토끼',
+  '판다', '코알라', '다람쥐', '여우', '사자',
+  '돌고래', '햄스터', '부엉이', '해달', '알파카',
+  '카피바라', '레서판다', '미어캣', '북극곰', '치타',
+];
+
+function generateTossName(): string {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+  return `${adj} ${animal}`;
+}
+
 function pickRandomNames(count: number): string[] {
-  const shuffled = [...RANDOM_NAMES].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  const names = new Set<string>();
+  while (names.size < count) {
+    names.add(generateTossName());
+  }
+  return [...names];
 }
 
 export default function SetupStep({ onComplete }: Props) {
@@ -25,8 +42,13 @@ export default function SetupStep({ onComplete }: Props) {
 
   const addPerson = useCallback(() => {
     const used = new Set(names);
-    const available = RANDOM_NAMES.find((n) => !used.has(n)) ?? `참가자${names.length + 1}`;
-    setNames((prev) => [...prev, available]);
+    let newName = generateTossName();
+    let tries = 0;
+    while (used.has(newName) && tries < 20) {
+      newName = generateTossName();
+      tries++;
+    }
+    setNames((prev) => [...prev, newName]);
   }, [names]);
 
   const removePerson = useCallback((index: number) => {
