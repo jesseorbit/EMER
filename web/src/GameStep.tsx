@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { generateGrid, computeLayout, computeAllPaths } from './ladder';
+import { generateGrid, computeLayout, computeAllPaths, computeSvgWidth } from './ladder';
 
 interface Props {
   participants: string[];
@@ -14,8 +14,7 @@ const PATH_COLORS = [
   '#cc5de8', '#ff922b', '#20c997', '#f06595',
 ];
 
-const SVG_WIDTH = 600;
-const SVG_HEIGHT = 500;
+const SVG_HEIGHT = 520;
 const NUM_ROWS = 8;
 const TRACE_DURATION = 1.6; // 경로 애니메이션 시간(초)
 
@@ -30,15 +29,18 @@ export default function GameStep({ participants, results, onReset }: Props) {
   const [structureReady, setStructureReady] = useState(false);
   const structureTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  // SVG 폭을 참가자 수에 맞게 동적 계산
+  const svgWidth = useMemo(() => computeSvgWidth(n), [n]);
+
   // 사다리 데이터 생성 (최초 1회)
   const { grid, layout, pathDs, mapping } = useMemo(() => {
     const grid = generateGrid(n, NUM_ROWS);
-    const layout = computeLayout(n, NUM_ROWS, SVG_WIDTH, SVG_HEIGHT);
+    const layout = computeLayout(n, NUM_ROWS, svgWidth, SVG_HEIGHT);
     const { pathDs, mapping } = computeAllPaths(
       n, grid, layout.colXs, layout.rowYs, layout.ladderTop, layout.ladderBottom,
     );
     return { grid, layout, pathDs, mapping };
-  }, [n]);
+  }, [n, svgWidth]);
 
   // 사다리 구조 그리기 완료 타이머
   useEffect(() => {
@@ -165,7 +167,7 @@ export default function GameStep({ participants, results, onReset }: Props) {
       {/* SVG 사다리 */}
       <div className="flex-1 flex items-center justify-center px-2 pt-2">
         <svg
-          viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+          viewBox={`0 0 ${svgWidth} ${SVG_HEIGHT}`}
           className="w-full max-h-[55vh]"
           preserveAspectRatio="xMidYMid meet"
         >
@@ -226,11 +228,14 @@ export default function GameStep({ participants, results, onReset }: Props) {
           {/* 5) 상단 이름 버튼 */}
           {participants.map((name, i) => {
             const x = layout.colXs[i];
+            const bw = layout.badgeWidth;
+            const bh = 34;
             const revealed = isRevealed(i);
             const tracing = isTracing(i);
             const available = isAvailable(i);
             const color = PATH_COLORS[i % PATH_COLORS.length];
             const isCoffeeWinner = revealed && mapping[i] === coffeeResultIndex;
+            const clipId = `clip-name-${i}`;
 
             return (
               <g
@@ -238,10 +243,15 @@ export default function GameStep({ participants, results, onReset }: Props) {
                 onClick={() => handleSelect(i)}
                 style={{ cursor: available ? 'pointer' : 'default' }}
               >
+                {/* 클리핑 영역 */}
+                <clipPath id={clipId}>
+                  <rect x={x - bw / 2 + 4} y={6} width={bw - 8} height={bh + 4} />
+                </clipPath>
+
                 {/* 선택 가능 표시 (펄스) */}
                 {available && (
                   <motion.rect
-                    x={x - 36} y={6} width={72} height={36} rx={18}
+                    x={x - bw / 2 - 3} y={5} width={bw + 6} height={bh + 6} rx={(bh + 6) / 2}
                     fill={color}
                     opacity={0.15}
                     animate={{ opacity: [0.08, 0.2, 0.08] }}
@@ -251,7 +261,7 @@ export default function GameStep({ participants, results, onReset }: Props) {
 
                 {/* 배지 배경 */}
                 <motion.rect
-                  x={x - 34} y={8} width={68} height={32} rx={16}
+                  x={x - bw / 2} y={8} width={bw} height={bh} rx={bh / 2}
                   fill={
                     tracing || revealed ? color
                     : available ? '#ffffff'
@@ -268,13 +278,14 @@ export default function GameStep({ participants, results, onReset }: Props) {
                     scale: isCoffeeWinner ? { duration: 0.5 } : { duration: 0.3, delay: i * 0.05 },
                     opacity: { duration: 0.3, delay: i * 0.05 },
                   }}
-                  style={{ originX: `${x}px`, originY: '24px' }}
+                  style={{ originX: `${x}px`, originY: `${8 + bh / 2}px` }}
                 />
 
-                {/* 이름 텍스트 */}
+                {/* 이름 텍스트 (클리핑으로 잘림 방지) */}
                 <motion.text
-                  x={x} y={29}
+                  x={x} y={8 + bh / 2 + 5}
                   textAnchor="middle"
+                  clipPath={`url(#${clipId})`}
                   className="text-[13px] font-semibold select-none pointer-events-none"
                   fill={tracing || revealed ? '#ffffff' : available ? color : '#8b95a1'}
                   initial={{ opacity: 0 }}
@@ -290,16 +301,23 @@ export default function GameStep({ participants, results, onReset }: Props) {
           {/* 6) 하단 결과 */}
           {results.map((result, i) => {
             const x = layout.colXs[i];
+            const bw = layout.badgeWidth;
+            const bh = 34;
             const isCoffee = result.includes('당첨');
             // 이 결과 칸에 도착한 참가자 인덱스
             const arrivedFrom = mapping.findIndex((endCol) => endCol === i);
             const thisRevealed = isRevealed(arrivedFrom);
             const color = PATH_COLORS[arrivedFrom % PATH_COLORS.length];
+            const clipId = `clip-result-${i}`;
 
             return (
               <g key={`result-${i}`}>
+                <clipPath id={clipId}>
+                  <rect x={x - bw / 2 + 4} y={SVG_HEIGHT - bh - 18} width={bw - 8} height={bh + 4} />
+                </clipPath>
+
                 <motion.rect
-                  x={x - 38} y={SVG_HEIGHT - 52} width={76} height={34} rx={17}
+                  x={x - bw / 2} y={SVG_HEIGHT - bh - 16} width={bw} height={bh} rx={bh / 2}
                   fill={
                     thisRevealed
                       ? isCoffee ? color : '#f2f4f6'
@@ -308,17 +326,18 @@ export default function GameStep({ participants, results, onReset }: Props) {
                   initial={{ opacity: 0 }}
                   animate={{
                     opacity: 1,
-                    scale: thisRevealed && isCoffee ? [1, 1.2, 1] : 1,
+                    scale: thisRevealed && isCoffee ? [1, 1.15, 1] : 1,
                   }}
                   transition={{
                     opacity: { duration: 0.3, delay: i * 0.05 },
                     scale: { duration: 0.4 },
                   }}
-                  style={{ originX: `${x}px`, originY: `${SVG_HEIGHT - 35}px` }}
+                  style={{ originX: `${x}px`, originY: `${SVG_HEIGHT - bh / 2 - 16}px` }}
                 />
                 <motion.text
-                  x={x} y={SVG_HEIGHT - 30}
+                  x={x} y={SVG_HEIGHT - bh / 2 - 16 + 5}
                   textAnchor="middle"
+                  clipPath={`url(#${clipId})`}
                   className="text-[12px] font-semibold select-none pointer-events-none"
                   fill={
                     thisRevealed
