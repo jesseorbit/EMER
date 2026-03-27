@@ -1,33 +1,40 @@
-import { useState, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 
 interface Props {
   onComplete: (names: string[]) => void;
 }
 
+const RANDOM_NAMES = [
+  '민수', '지현', '서준', '하은', '도윤', '수빈', '예준', '지우',
+  '시우', '서연', '하준', '지민', '유준', '채원', '건우', '소율',
+  '현우', '다은', '준서', '유나', '태민', '은지', '성훈', '미래',
+];
+
+function pickRandomNames(count: number): string[] {
+  const shuffled = [...RANDOM_NAMES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 export default function SetupStep({ onComplete }: Props) {
-  const [names, setNames] = useState<string[]>([]);
-  const [input, setInput] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [names, setNames] = useState<string[]>(() => pickRandomNames(4));
 
-  const addName = useCallback(() => {
-    const trimmed = input.trim();
-    if (!trimmed || names.includes(trimmed)) return;
-    setNames((prev) => [...prev, trimmed]);
-    setInput('');
-    inputRef.current?.focus();
-  }, [input, names]);
+  const updateName = useCallback((index: number, value: string) => {
+    setNames((prev) => prev.map((n, i) => (i === index ? value : n)));
+  }, []);
 
-  const removeName = useCallback((index: number) => {
+  const addPerson = useCallback(() => {
+    const used = new Set(names);
+    const available = RANDOM_NAMES.find((n) => !used.has(n)) ?? `참가자${names.length + 1}`;
+    setNames((prev) => [...prev, available]);
+  }, [names]);
+
+  const removePerson = useCallback((index: number) => {
     setNames((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addName();
-    }
-  };
+  const isValid = names.length >= 2 && names.every((n) => n.trim().length > 0);
+  const hasDuplicates = new Set(names.map((n) => n.trim())).size !== names.length;
 
   return (
     <div className="flex-1 flex flex-col px-5 pt-16 pb-8">
@@ -43,90 +50,84 @@ export default function SetupStep({ onComplete }: Props) {
           누가 살까요?
         </h1>
         <p className="text-[15px] text-toss-gray-500 mt-3">
-          참가자 이름을 입력해주세요
+          이름을 눌러 수정할 수 있어요
         </p>
       </motion.div>
 
-      {/* 입력 */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="mt-8"
-      >
-        <div className="flex gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="이름 입력"
-            maxLength={10}
-            className="flex-1 bg-toss-gray-100 rounded-2xl px-5 py-4 text-[16px]
-                       text-toss-gray-900 outline-none transition-all duration-200
-                       focus:ring-2 focus:ring-toss-blue focus:ring-opacity-30
-                       focus:bg-white placeholder:text-toss-gray-400"
-          />
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={addName}
-            disabled={!input.trim()}
-            className="bg-toss-gray-100 text-toss-gray-600 rounded-2xl px-5 py-4
-                       font-semibold text-[15px] transition-colors
-                       disabled:opacity-40 disabled:cursor-not-allowed
-                       enabled:hover:bg-toss-gray-200 enabled:active:bg-toss-gray-300"
+      {/* 참가자 리스트 */}
+      <div className="mt-8 space-y-2.5">
+        {names.map((name, index) => (
+          <motion.div
+            key={index}
+            initial={{ x: 30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{
+              type: 'spring', stiffness: 400, damping: 28,
+              delay: 0.15 + index * 0.05,
+            }}
+            className="flex items-center gap-2.5"
           >
-            추가
-          </motion.button>
-        </div>
-      </motion.div>
-
-      {/* 참가자 칩 리스트 */}
-      <div className="mt-6 flex flex-wrap gap-2 min-h-[48px]">
-        <AnimatePresence>
-          {names.map((name, index) => (
-            <motion.div
-              key={name}
-              layout
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="flex items-center gap-1.5 bg-toss-blue-light text-toss-blue
-                         rounded-full pl-4 pr-2 py-2.5 text-[14px] font-semibold"
+            {/* 번호 */}
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center
+                         text-[12px] font-bold text-white shrink-0"
+              style={{ backgroundColor: PERSON_COLORS[index % PERSON_COLORS.length] }}
             >
-              <span>{name}</span>
-              <button
-                onClick={() => removeName(index)}
-                className="w-5 h-5 rounded-full flex items-center justify-center
-                           hover:bg-toss-blue/10 transition-colors text-toss-blue/60
-                           hover:text-toss-blue"
+              {index + 1}
+            </div>
+
+            {/* 이름 입력 */}
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => updateName(index, e.target.value)}
+              maxLength={10}
+              className="flex-1 bg-toss-gray-100 rounded-xl px-4 py-3.5 text-[15px]
+                         text-toss-gray-900 outline-none transition-all duration-200
+                         focus:ring-2 focus:ring-toss-blue/30 focus:bg-white"
+            />
+
+            {/* 삭제 */}
+            {names.length > 2 && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => removePerson(index)}
+                className="w-8 h-8 rounded-full flex items-center justify-center
+                           text-toss-gray-400 hover:text-toss-gray-600 hover:bg-toss-gray-100
+                           transition-colors shrink-0"
               >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path
-                    d="M1 1L9 9M9 1L1 9"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-              </button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.button>
+            )}
+          </motion.div>
+        ))}
       </div>
 
-      {/* 인원 수 표시 */}
-      {names.length > 0 && (
-        <motion.p
+      {/* 추가 버튼 */}
+      {names.length < 8 && (
+        <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-[13px] text-toss-gray-400 mt-2"
+          transition={{ delay: 0.4 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={addPerson}
+          className="mt-3 w-full py-3.5 rounded-xl border-2 border-dashed border-toss-gray-200
+                     text-toss-gray-400 text-[14px] font-semibold
+                     hover:border-toss-gray-300 hover:text-toss-gray-500 transition-colors"
         >
-          {names.length}명 참가
-        </motion.p>
+          + 참가자 추가
+        </motion.button>
       )}
+
+      {/* 인원 수 */}
+      <p className="text-[13px] text-toss-gray-400 mt-3">
+        {names.length}명 참가
+        {hasDuplicates && (
+          <span className="text-red-400 ml-2">· 중복된 이름이 있어요</span>
+        )}
+      </p>
 
       {/* 스페이서 */}
       <div className="flex-1" />
@@ -137,18 +138,21 @@ export default function SetupStep({ onComplete }: Props) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
         whileTap={{ scale: 0.97 }}
-        onClick={() => onComplete(names)}
-        disabled={names.length < 2}
+        onClick={() => onComplete(names.map((n) => n.trim()))}
+        disabled={!isValid || hasDuplicates}
         className="w-full py-[18px] rounded-2xl text-[16px] font-bold
                    transition-all duration-200
                    disabled:bg-toss-gray-200 disabled:text-toss-gray-400
                    enabled:bg-toss-blue enabled:text-white enabled:shadow-lg
                    enabled:shadow-toss-blue/25 enabled:hover:bg-toss-blue-dark"
       >
-        {names.length < 2
-          ? `${2 - names.length}명 더 추가해주세요`
-          : '다음'}
+        다음
       </motion.button>
     </div>
   );
 }
+
+const PERSON_COLORS = [
+  '#3182f6', '#ff6b6b', '#51cf66', '#ffd43b',
+  '#cc5de8', '#ff922b', '#20c997', '#f06595',
+];
