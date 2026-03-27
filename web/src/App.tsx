@@ -40,7 +40,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
+    <div className="h-full flex flex-col max-w-lg mx-auto w-full overflow-hidden">
       <AnimatePresence mode="wait">
         {step === 'setup' && (
           <motion.div
@@ -50,7 +50,7 @@ export default function App() {
             animate="center"
             exit="exit"
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="flex-1 flex flex-col"
+            className="h-full flex flex-col"
           >
             <SetupStep onComplete={handleSetupComplete} />
           </motion.div>
@@ -64,7 +64,7 @@ export default function App() {
             animate="center"
             exit="exit"
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="flex-1 flex flex-col"
+            className="h-full flex flex-col"
           >
             <ConfigStep
               participants={participants}
@@ -83,7 +83,7 @@ export default function App() {
             animate="center"
             exit="exit"
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="flex-1 flex flex-col"
+            className="h-full flex flex-col"
           >
             <GameStep
               participants={participants}
