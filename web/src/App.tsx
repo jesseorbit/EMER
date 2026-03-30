@@ -40,7 +40,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col max-w-lg mx-auto w-full overflow-hidden">
+    <div className="h-full flex flex-col max-w-lg mx-auto w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
       <AnimatePresence mode="wait">
         {step === 'setup' && (
           <motion.div

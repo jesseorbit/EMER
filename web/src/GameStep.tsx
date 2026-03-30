@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { generateGrid, computeLayout, computeAllPaths, computeSvgWidth } from './ladder';
+import { generateGrid, computeLayout, computeAllPaths, SVG_W, SVG_H } from './ladder';
 
 interface Props {
   participants: string[];
@@ -14,7 +14,6 @@ const PATH_COLORS = [
   '#cc5de8', '#ff922b', '#20c997', '#f06595',
 ];
 
-const SVG_HEIGHT = 520;
 const NUM_ROWS = 8;
 const TRACE_DURATION = 1.6;
 
@@ -26,16 +25,14 @@ export default function GameStep({ participants, results, onReset }: Props) {
   const [structureReady, setStructureReady] = useState(false);
   const structureTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const svgWidth = useMemo(() => computeSvgWidth(n), [n]);
-
   const { grid, layout, pathDs, mapping } = useMemo(() => {
     const grid = generateGrid(n, NUM_ROWS);
-    const layout = computeLayout(n, NUM_ROWS, svgWidth, SVG_HEIGHT);
+    const layout = computeLayout(n, NUM_ROWS);
     const { pathDs, mapping } = computeAllPaths(
       n, grid, layout.colXs, layout.rowYs, layout.ladderTop, layout.ladderBottom,
     );
     return { grid, layout, pathDs, mapping };
-  }, [n, svgWidth]);
+  }, [n]);
 
   useEffect(() => {
     structureTimer.current = setTimeout(() => setStructureReady(true), 1000);
@@ -138,7 +135,7 @@ export default function GameStep({ participants, results, onReset }: Props) {
       {/* SVG 사다리 — 남은 공간을 꽉 채움 */}
       <div className="flex-1 min-h-0 flex items-center justify-center px-1">
         <svg
-          viewBox={`0 0 ${svgWidth} ${SVG_HEIGHT}`}
+          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           className="w-full h-full"
           preserveAspectRatio="xMidYMid meet"
         >
@@ -258,19 +255,19 @@ export default function GameStep({ participants, results, onReset }: Props) {
             return (
               <g key={`result-${i}`}>
                 <clipPath id={clipId}>
-                  <rect x={x - bw / 2 + 4} y={SVG_HEIGHT - bh - 18} width={bw - 8} height={bh + 4} />
+                  <rect x={x - bw / 2 + 4} y={SVG_H - bh - 18} width={bw - 8} height={bh + 4} />
                 </clipPath>
 
                 <motion.rect
-                  x={x - bw / 2} y={SVG_HEIGHT - bh - 16} width={bw} height={bh} rx={bh / 2}
+                  x={x - bw / 2} y={SVG_H - bh - 16} width={bw} height={bh} rx={bh / 2}
                   fill={thisRevealed ? (isCoffee ? color : '#f2f4f6') : '#e5e8eb'}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1, scale: thisRevealed && isCoffee ? [1, 1.15, 1] : 1 }}
                   transition={{ opacity: { duration: 0.3, delay: i * 0.05 }, scale: { duration: 0.4 } }}
-                  style={{ originX: `${x}px`, originY: `${SVG_HEIGHT - bh / 2 - 16}px` }}
+                  style={{ originX: `${x}px`, originY: `${SVG_H - bh / 2 - 16}px` }}
                 />
                 <motion.text
-                  x={x} y={SVG_HEIGHT - bh / 2 - 16 + 5} textAnchor="middle" clipPath={`url(#${clipId})`}
+                  x={x} y={SVG_H - bh / 2 - 16 + 5} textAnchor="middle" clipPath={`url(#${clipId})`}
                   className="text-[12px] font-semibold select-none pointer-events-none"
                   fill={thisRevealed ? (isCoffee ? '#ffffff' : '#6b7684') : '#b0b8c1'}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}

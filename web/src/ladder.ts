@@ -102,34 +102,25 @@ export function computeAllPaths(
   return { pathDs, mapping };
 }
 
-/**
- * 사다리 레이아웃 계산
- */
-/**
- * 참가자 수에 맞는 SVG 전체 폭 계산
- * 최소 칸 간격 120px 보장
- */
-export function computeSvgWidth(numCols: number): number {
-  const minSpacing = 120;
-  const paddingX = 60;
-  return Math.max(600, paddingX * 2 + (numCols - 1) * minSpacing);
-}
+/** 고정 SVG viewBox 크기 */
+export const SVG_W = 600;
+export const SVG_H = 520;
 
-export function computeLayout(numCols: number, numRows: number, width: number, height: number) {
-  const paddingX = 60;
+export function computeLayout(numCols: number, numRows: number) {
+  const paddingX = numCols <= 4 ? 60 : 40;
   const topArea = 70;
   const bottomArea = 70;
   const ladderTop = topArea;
-  const ladderBottom = height - bottomArea;
+  const ladderBottom = SVG_H - bottomArea;
 
-  const colSpacing = numCols > 1 ? (width - paddingX * 2) / (numCols - 1) : 0;
+  const colSpacing = numCols > 1 ? (SVG_W - paddingX * 2) / (numCols - 1) : 0;
   const colXs = Array.from({ length: numCols }, (_, i) => paddingX + i * colSpacing);
 
   const rowSpacing = (ladderBottom - ladderTop) / (numRows + 1);
   const rowYs = Array.from({ length: numRows }, (_, i) => ladderTop + (i + 1) * rowSpacing);
 
-  // 뱃지 폭: 칸 간격의 85%, 최대 110px
-  const badgeWidth = Math.min(colSpacing * 0.85, 110);
+  // 뱃지 폭: 칸 간격의 85%, 최대 100px, 최소 50px
+  const badgeWidth = Math.max(Math.min(colSpacing * 0.85, 100), 50);
 
   return { colXs, rowYs, ladderTop, ladderBottom, paddingX, colSpacing, badgeWidth };
 }

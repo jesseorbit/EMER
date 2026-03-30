@@ -18,13 +18,20 @@ html, body {
   background-color: #ffffff;
   color: #191f28;
 
-  /* 뷰포트에 정확히 잠금 — 바디 스크롤 차단 */
+  /* 뷰포트에 정확히 잠금 */
+  width: 100%;
+  max-width: 100vw;
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 #root {
+  width: 100%;
+  max-width: 100vw;
   height: 100dvh;
   display: flex;
   flex-direction: column;
